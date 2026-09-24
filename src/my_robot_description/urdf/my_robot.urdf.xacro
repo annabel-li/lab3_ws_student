@@ -6,6 +6,10 @@
     <xacro:property name="base_height" value="0.05" /> 
     <xacro:property name="wheel_radius" value="0.04" /> 
     <xacro:property name="wheel_length" value="0.03" />
+    <xacro:property name="wheel_mass" value="0.5" />
+<xacro:property name="wheel_ixx_iyy" value="${(1/12)*wheel_mass*(3*wheel_radius**2 + wheel_length**2)}" />
+<xacro:property name="wheel_izz" value="${0.5*wheel_mass*wheel_radius**2}" />
+
 
     <xacro:property name="camera_side_length" value="0.03" /> 
 
@@ -63,7 +67,51 @@
     </link>
 
     <!--TODO Adding wheels links - add "right_wheel_link" and "left_wheel_link" here-->
-    
+<link name="left_wheel_link">
+    <inertial>
+        <origin xyz="0 0 0" rpy="1.5707 0 0" />
+        <mass value="${wheel_mass}" />
+        <inertia ixx="${wheel_ixx_iyy}" ixy="0" ixz="0" iyy="${wheel_ixx_iyy}" iyz="0" izz="${wheel_izz}" />
+    </inertial>
+    <visual>
+        <origin xyz="0 0 0" rpy="1.5707 0 0" />
+        <geometry>
+            <cylinder radius="${wheel_radius}" length="${wheel_length}" />
+        </geometry>
+        <material name="yellow" />
+    </visual>
+    <collision>
+        <origin xyz="0 0 0" rpy="1.5707 0 0" />
+        <geometry>
+            <cylinder radius="${wheel_radius}" length="${wheel_length}" />
+        </geometry>
+    </collision>
+</link>
+
+<link name="right_wheel_link">
+    <inertial>
+        <origin xyz="0 0 0" rpy="1.5707 0 0" />
+        <mass value="${wheel_mass}" />
+        <inertia ixx="${wheel_ixx_iyy}" ixy="0" ixz="0" iyy="${wheel_ixx_iyy}" iyz="0" izz="${wheel_izz}" />
+    </inertial>
+    <visual>
+        <origin xyz="0 0 0" rpy="1.5707 0 0" />
+        <geometry>
+            <cylinder radius="${wheel_radius}" length="${wheel_length}" />
+        </geometry>
+        <material name="yellow" />
+    </visual>
+    <collision>
+        <origin xyz="0 0 0" rpy="1.5707 0 0" />
+        <geometry>
+            <cylinder radius="${wheel_radius}" length="${wheel_length}" />
+        </geometry>
+    </collision>
+</link>
+
+
+
+
     <!-- End Adding wheels links -->
 
     <link name="caster_wheel_link">
@@ -95,6 +143,25 @@
 
     <!-- TODO Adding wheels joints - add a joint to the base_link for each wheel-->
     
+<joint name="left_wheel_joint" type="continuous">
+    <parent link="base_link" />
+    <child link="left_wheel_link" />
+<origin xyz="-${base_length/2} ${base_width/2 + wheel_length/2} 0" rpy="0 0 0" />   
+    <axis xyz="0 1 0" />
+</joint>
+
+<joint name="right_wheel_joint" type="continuous">
+    <parent link="base_link" />
+    <child link="right_wheel_link" />
+    <origin xyz="-${base_length/2} -${base_width/2 + wheel_length/2} 0" rpy="0 0 0" />
+
+    <axis xyz="0 1 0" />
+</joint>
+
+
+
+
+
     <!-- End Adding wheels joints -->
 
     <joint name="base_caster_wheel_joint" type="fixed">
@@ -109,22 +176,46 @@
         <origin xyz="0 0 ${wheel_radius}" rpy="0 0 0" />
     </joint>
 
-    <gazebo>
-        <plugin filename="gz-sim-pose-publisher-system"
-            name="gz::sim::systems::PosePublisher">
+   <!-- Diffrential Drive -->
 
-            <publish_model_pose>true</publish_model_pose>
-            <publish_link_pose>false</publish_link_pose>
-            <publish_sensor_pose>false</publish_sensor_pose>
-            <publish_collision_pose>false</publish_collision_pose>
-            <publish_visual_pose>false</publish_visual_pose>
-            
-            <update_frequency>50</update_frequency>
-            
-            <use_pose_vector_msg>false</use_pose_vector_msg>
-                
-        </plugin>
-    </gazebo>
 
+
+<gazebo>
+    <plugin filename="gz-sim-diff-drive-system"
+        name="gz::sim::systems::DiffDrive">
+
+        <left_joint>left_wheel_joint</left_joint>
+        <right_joint>right_wheel_joint</right_joint>
+
+        <wheel_separation>${base_width + wheel_length}</wheel_separation>
+        <wheel_radius>${wheel_radius}</wheel_radius>
+
+        <odom_publish_frequency>50</odom_publish_frequency>
+
+        <topic>cmd_vel</topic>
+        <tf_topic>tf</tf_topic>
+
+        <frame_id>odom</frame_id>
+        <child_frame_id>base_footprint</child_frame_id>
+
+    </plugin>
+</gazebo>
+
+<gazebo>
+    <plugin filename="gz-sim-pose-publisher-system"
+        name="gz::sim::systems::PosePublisher">
+
+        <publish_model_pose>true</publish_model_pose>
+        <publish_link_pose>false</publish_link_pose>
+        <publish_sensor_pose>false</publish_sensor_pose>
+        <publish_collision_pose>false</publish_collision_pose>
+        <publish_visual_pose>false</publish_visual_pose>
+
+        <update_frequency>50</update_frequency>
+
+        <use_pose_vector_msg>false</use_pose_vector_msg>
+
+    </plugin>
+</gazebo>
 
 </robot>
